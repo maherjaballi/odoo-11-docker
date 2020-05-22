@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  labels:
+    name: odootest
+  name: spring-controller
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: odootest
+    spec:
+      containers:
+      - image: mjaballi/odoo-test
+        name: odootest
+        ports:
+        - name: odootest
+          containerPort: 8080     
+---
+# Node Port Service
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: odootest
+  name: odootest
+spec:
+  type: NodePort
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    name: odootest
+---
+# more mysql-master-rc.yaml
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: postgres
+  labels:
+    name: postgres
+spec:
+  replicas: 1
+  selector:
+    name: postgres
+  template:
+    metadata:
+      labels:
+        name: postgres
+    spec:
+      containers:
+        - name: master
+          image: postgres:10
+          ports:
+            - containerPort: 5432
+        #  env:
+       #     - name: POSTGRES_DB
+      #        value: "test"
+     #       - name: POSTGRES_PASSWORD
+    #          value: 'postgres'
+   #         - name: PGDATA
+  #            value: /var/lib/postgresql/data/pgdata
+          environment:
+            - POSTGRES_PASSWORD=odoo
+            - POSTGRES_USER=odoo
+          volumeMounts:
+	    - mountPath: /var/lib/postgresql/data
+	      name: postgres-data             
+# more mysql-master-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  labels:
+    name: postgres
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+      name: postgres
